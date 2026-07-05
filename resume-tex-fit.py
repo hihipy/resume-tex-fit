@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 r"""
-resume-TeX-fit: fit a LaTeX resume, CV, or any knob-wired document to an
+resume-tex-fit: fit a LaTeX resume, CV, or any knob-wired document to an
 exact page count.
 
 The target .tex must expose one density knob:  \newcommand{\rs}{1.000}
