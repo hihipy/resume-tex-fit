@@ -1,0 +1,33 @@
+% two-column.tex - format fixture: multicol body.
+% Tests page-count reading when content flows across two columns.
+% Expected: fits 1 page at normal density.
+\documentclass[letterpaper,10pt]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{xfp}
+\usepackage{multicol}
+\usepackage{enumitem}
+\newcommand{\rs}{1.000}
+\newcommand{\fs}[2]{\fontsize{\fpeval{#1*\rs}}{\fpeval{#2*\rs}}\selectfont}
+\newcommand{\sv}[1]{\vspace{\fpeval{#1*\rs}pt}}
+\newcommand{\heading}[1]{\sv{4}{\fs{12}{14}\bfseries #1}\\[-3pt]\rule{\linewidth}{0.6pt}\sv{2}}
+\setlength{\parindent}{0pt}\pagestyle{empty}
+\begin{document}
+{\fs{20}{24}\bfseries Jordan Lee}\\[2pt]
+{\fs{9.5}{12} Data Engineer \textbullet\ jordan.lee@example.com}
+\sv{4}
+\begin{multicols}{2}
+\heading{Summary}
+{\fs{10}{13} Builds and maintains data pipelines feeding analytics and reporting.}
+\heading{Skills}
+{\fs{10}{13} Python, SQL, Spark, Airflow, dbt, AWS, Git.}
+\heading{Experience}
+{\fs{10.5}{13}\bfseries Data Engineer}, Example Corp\\[1pt]
+\begin{itemize}[leftmargin=1.1em,itemsep=2pt,topsep=2pt]
+\item Owns the ingestion layer for 20+ sources.
+\item Cut nightly batch runtime by 40 percent.
+\end{itemize}
+\heading{Education}
+{\fs{10.5}{13}\bfseries BS, Computer Science}, University of Example\\[1pt]
+{\fs{9.5}{12} 2018}
+\end{multicols}
+\end{document}

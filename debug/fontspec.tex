@@ -1,0 +1,30 @@
+% fontspec.tex - format fixture: fontspec with a TeX Live system font.
+% Tests that the knob machinery and fit work when a main font is set explicitly.
+% Expected: fits 1 page at normal density.
+\documentclass[letterpaper,11pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage{xfp}
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\usepackage{enumitem}
+\newcommand{\rs}{1.000}
+\newcommand{\fs}[2]{\fontsize{\fpeval{#1*\rs}}{\fpeval{#2*\rs}}\selectfont}
+\newcommand{\sv}[1]{\vspace{\fpeval{#1*\rs}pt}}
+\setlength{\parindent}{0pt}\pagestyle{empty}
+\begin{document}
+{\fs{20}{24}\bfseries Priya Nair}\\[2pt]
+{\fs{10}{13} Analytics Lead \textbullet\ priya.nair@example.com}
+\sv{6}
+{\fs{13}{16}\bfseries Summary}\\[-3pt]\rule{\linewidth}{0.6pt}\sv{3}
+{\fs{11}{14} Leads a small analytics team; sets standards for reporting and data quality.}
+\sv{6}
+{\fs{13}{16}\bfseries Experience}\\[-3pt]\rule{\linewidth}{0.6pt}\sv{3}
+{\fs{11}{14}\bfseries Analytics Lead}, Example Inc\\[1pt]
+\begin{itemize}[leftmargin=1.2em,itemsep=3pt,topsep=2pt]
+\item Set the reporting standards adopted across four teams.
+\item Mentored three analysts from junior to mid level.
+\end{itemize}
+\sv{4}
+{\fs{13}{16}\bfseries Skills}\\[-3pt]\rule{\linewidth}{0.6pt}\sv{3}
+{\fs{11}{14} SQL, Python, Power BI, dbt, stakeholder communication.}
+\end{document}

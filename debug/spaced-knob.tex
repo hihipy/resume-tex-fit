@@ -1,0 +1,19 @@
+% spaced-knob.tex - edge fixture: the knob is written with spaces.
+% Tests the whitespace-tolerant KNOB_RE: \newcommand {\rs} {1.000}
+% Expected: knob detected and rewritten normally.
+\documentclass[letterpaper,10pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{xfp}
+\newcommand {\rs} {1.000}
+\newcommand{\fs}[2]{\fontsize{\fpeval{#1*\rs}}{\fpeval{#2*\rs}}\selectfont}
+\setlength{\parindent}{0pt}\pagestyle{empty}
+\begin{document}
+{\fs{20}{24}\bfseries Casey Kim}\\[2pt]
+{\fs{10}{13} Business Analyst}
+\vspace{6pt}\\
+{\fs{13}{16}\bfseries Experience}\\[-3pt]\rule{\linewidth}{0.6pt}\vspace{3pt}\\
+{\fs{11}{14} Business Analyst, Example LLC. Built the KPI dashboards used by leadership.}
+\vspace{6pt}\\
+{\fs{13}{16}\bfseries Education}\\[-3pt]\rule{\linewidth}{0.6pt}\vspace{3pt}\\
+{\fs{11}{14} BA, Economics, University of Example, 2019.}
+\end{document}
