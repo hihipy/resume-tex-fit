@@ -1,0 +1,13 @@
+% broken.tex - edge fixture: has the knob but a deliberate LaTeX error.
+% Tests compile-failure surfacing: the error line should appear in the report.
+% Expected: "xelatex failed. First error: ! Undefined control sequence."
+\documentclass[letterpaper,11pt]{article}
+\usepackage{xfp}
+\newcommand{\rs}{1.000}
+\newcommand{\fs}[2]{\fontsize{\fpeval{#1*\rs}}{\fpeval{#2*\rs}}\selectfont}
+\setlength{\parindent}{0pt}\pagestyle{empty}
+\begin{document}
+{\fs{20}{24}\bfseries Alex Doe}
+\vspace{6pt}\\
+\thiscommanddoesnotexist
+\end{document}

@@ -1,0 +1,104 @@
+% demo.tex - resume-TeX-fit demo.
+%
+% Every font size, line spacing, and gap is computed from the one \rs knob, so
+% resume-TeX-fit can fit this document to a target page count. It compiles with
+% xelatex and the default Latin Modern fonts, so there is no fonts/ folder to
+% set up. This resume is deliberately overloaded: at normal size it runs well
+% onto a second page, and the tool compresses the whole thing onto one:
+%
+%   python3 resume-tex-fit.py demo.tex --pages 1
+
+\documentclass[letterpaper,12pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage{xfp}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\usepackage{titlesec}
+
+\newcommand{\rs}{1.000}
+\newcommand{\fs}[2]{\fontsize{\fpeval{#1*\rs}}{\fpeval{#2*\rs}}\selectfont}
+\newcommand{\sv}[1]{\vspace{\fpeval{#1*\rs}pt}}
+\newlength{\Litemsep}\setlength{\Litemsep}{\fpeval{2*\rs}pt}
+\newlength{\Ltopsep}\setlength{\Ltopsep}{\fpeval{2*\rs}pt}
+
+\definecolor{accent}{HTML}{1A365D}
+\setlength{\parindent}{0pt}
+\pagestyle{empty}
+
+\titleformat{\section}
+  {\fs{12}{15}\bfseries\color{accent}}{}{0pt}{}[{\color{accent}\titlerule}]
+\titlespacing{\section}{0pt}{\fpeval{7*\rs}pt}{\fpeval{3*\rs}pt}
+
+\newcommand{\role}[3]{%
+  \sv{3}{\fs{11}{14}\bfseries #1}, #2\hfill{\fs{10}{13} #3}\\[\fpeval{1*\rs}pt]}
+
+\begin{document}
+
+{\fs{22}{26}\bfseries\color{accent} Alex Rivera}\\[\fpeval{2*\rs}pt]
+{\fs{10}{13} Data Analyst \textbullet\ Miami, FL \textbullet\
+ alex.rivera@example.com \textbullet\ github.com/example}
+
+\sv{4}
+
+\section{Summary}
+{\fs{10.5}{14} Data analyst with six years turning operational and clinical data
+into dashboards and decisions. Comfortable across SQL, Python, and Power BI, and
+used to owning a question from raw extract through to a result a non-technical
+audience can act on.}
+
+\section{Skills}
+{\fs{10.5}{14} SQL, Python (pandas, NumPy), R, Power BI, DAX, Excel/VBA, Git,
+data modeling, ETL, dashboard design.}
+
+\section{Education}
+\role{MS, Business Analytics}{University of Example}{2019}
+\role{BS, Economics}{University of Example}{2017}
+
+\section{Experience}
+% One long, splittable bullet stream. Because it is the last thing in the
+% document, the overflow lands here and compresses smoothly, with no section
+% heading stuck below it to force a hard page break.
+\role{Senior Data Analyst}{Example Health System}{2021 to Present}
+\begin{itemize}[leftmargin=1.15em, itemsep=\Litemsep, topsep=\Ltopsep, parsep=0pt]\fs{10.5}{13}
+  \item Built the reporting layer for a \$40M service line, cutting the monthly
+        close from nine days to two by replacing manual spreadsheets with a
+        modeled SQL pipeline.
+  \item Automated 15 recurring dashboards in Power BI, removing roughly 20 hours
+        of manual refresh work each week across three teams.
+  \item Partnered with clinical leads to define 30+ quality measures, resolving
+        definition conflicts that had produced inconsistent numbers for years.
+  \item Mentored two junior analysts from onboarding to independent ownership of
+        their reporting areas.
+  \item Led the migration of legacy Excel reports to a governed semantic model,
+        cutting reconciliation errors to near zero.
+\end{itemize}
+\role{Data Analyst}{Example Analytics Group}{2019 to 2021}
+\begin{itemize}[leftmargin=1.15em, itemsep=\Litemsep, topsep=\Ltopsep, parsep=0pt]\fs{10.5}{13}
+  \item Cleaned and consolidated 12 source systems into a single reporting
+        warehouse used across the whole department.
+  \item Wrote Python jobs to validate incoming files, catching format errors
+        before they reached downstream reports.
+  \item Built a self-serve metric catalog that cut ad hoc requests by a third.
+  \item Documented pipeline logic so other analysts could extend it without help.
+\end{itemize}
+\role{Reporting Analyst}{Example County}{2017 to 2019}
+\begin{itemize}[leftmargin=1.15em, itemsep=\Litemsep, topsep=\Ltopsep, parsep=0pt]\fs{10.5}{13}
+  \item Turned a two-day manual monthly operations report into a one-click
+        refresh for a 200-person department.
+  \item Trained eight staff to self-serve routine metrics, cutting ad hoc report
+        requests roughly in half.
+  \item Standardized 40+ recurring queries into a shared, documented library.
+  \item Rebuilt the county dashboard suite on a single refreshable data source.
+  \item Cut monthly reconciliation time from a full day to under an hour.
+  \item Introduced version control and code review to the reporting team.
+\end{itemize}
+\role{Junior Analyst}{Example Startup}{2015 to 2017}
+\begin{itemize}[leftmargin=1.15em, itemsep=\Litemsep, topsep=\Ltopsep, parsep=0pt]\fs{10.5}{13}
+  \item Built the first revenue dashboard the founders used in board meetings.
+  \item Set up basic data checks that caught billing errors before invoicing.
+  \item Automated a weekly KPI email that leadership still relies on.
+  \item Wrote the team's first SQL style guide and onboarding notes.
+\end{itemize}
+
+\end{document}

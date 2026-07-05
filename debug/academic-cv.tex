@@ -1,0 +1,69 @@
+% academic-cv.tex - format fixture: CV with academic \section headings, ~2 pages.
+% Tests CV recognition (Publications/Grants/Teaching are in DOC_SECTIONS) and the
+% --pages 0 natural-length fit. Expected: check flags it as a resume/CV;
+% --pages 0 fits its natural length (2 pages).
+\documentclass[letterpaper,12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{xfp}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\newcommand{\rs}{1.000}
+\newcommand{\fs}[2]{\fontsize{\fpeval{#1*\rs}}{\fpeval{#2*\rs}}\selectfont}
+\newcommand{\sv}[1]{\vspace{\fpeval{#1*\rs}pt}}
+\titleformat{\section}{\fs{13}{16}\bfseries}{}{0pt}{}[\titlerule]
+\titlespacing{\section}{0pt}{\fpeval{7*\rs}pt}{\fpeval{3*\rs}pt}
+\setlength{\parindent}{0pt}\pagestyle{empty}
+\begin{document}
+{\fs{22}{26}\bfseries Dr. Sam Ortiz}\\[2pt]
+{\fs{10}{13} Assistant Professor of Biomedical Informatics \textbullet\ sam.ortiz@example.com}
+
+\section{Research}
+{\fs{11}{14} Computational methods for large-scale health data, reproducible
+analytics, and data-quality measurement across clinical systems.}
+
+\section{Education}
+{\fs{11}{14}\bfseries PhD, Biomedical Informatics}, University of Example, 2017\\
+{\fs{11}{14}\bfseries BS, Computer Science}, University of Example, 2012
+
+\section{Publications}
+\begin{enumerate}[leftmargin=1.5em,itemsep=3pt]
+\item Ortiz S., Lee J., Nair P. A scalable pipeline for clinical cohort discovery. Journal of Example Informatics, 2024.
+\item Ortiz S., Kim C. Reproducibility in health analytics: a survey. Example Data Review, 2023.
+\item Ortiz S. Measuring data quality at scale. Proceedings of Example Conference, 2022.
+\item Ortiz S., Brooks T. Standardizing quality measures across systems. Example Health Journal, 2021.
+\item Ortiz S. et al. A framework for auditable data pipelines. Example Systems, 2020.
+\item Ortiz S., Reyes M. Cohort reproducibility benchmarks. Example Informatics Letters, 2019.
+\item Ortiz S., Nair P. Automated validation for research data. Example Methods, 2018.
+\item Ortiz S. Toward transparent analytics workflows. Example Review, 2017.
+\item Ortiz S., Lee J. Scaling data quality checks. Example Proceedings, 2016.
+\end{enumerate}
+
+\section{Grants}
+\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+\item Example Foundation Research Award, Principal Investigator, 2023 to 2026.
+\item National Example Institute Pilot Grant, Co-Investigator, 2021 to 2022.
+\item Institutional Seed Fund, Principal Investigator, 2019.
+\end{itemize}
+
+\section{Teaching}
+\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+\item Graduate Data Management and Governance, instructor of record, 2022 to present.
+\item Introduction to Statistical Computing, 2020 to 2022.
+\item Guest lectures, Reproducible Research seminar, annually since 2019.
+\end{itemize}
+
+\section{Presentations}
+\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+\item Invited talk, Example Analytics Summit, 2024.
+\item Panelist, Reproducible Research Workshop, 2023.
+\item Poster, Example Informatics Conference, 2021.
+\end{itemize}
+
+\section{Service}
+\begin{itemize}[leftmargin=1.5em,itemsep=3pt]
+\item Reviewer, Journal of Example Informatics and Example Data Review.
+\item Committee member, departmental data governance working group.
+\item Mentor, undergraduate research program, 2020 to present.
+\end{itemize}
+
+\end{document}
