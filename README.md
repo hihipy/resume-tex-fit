@@ -31,7 +31,7 @@ The usual fixes all have a catch:
 
 `resume-tex-fit` turns page fitting into one search. Your document exposes a single scaling command, `\newcommand{\rs}{1.000}`, and every font size, line spacing, and gap is computed from it. The tool edits that number, compiles with `xelatex`, reads the page count from the log, and searches for the largest scale that still fits your target. Fitting to the largest scale means the last page fills as much as it can without spilling.
 
-It checks feasibility against the document's natural size, not against the scale ceiling, so a longer target does not pad a short resume by inflating type unless you turn on Force Fit. Three outcomes, covered in detail below: it fits, it is too long, or it is too short.
+It checks feasibility against the document's natural size, not against the scale ceiling, so a longer target does not pad a short resume by inflating type unless you turn on Force Fit. Three outcomes, [covered in detail below](#the-three-outcomes): it fits, it is too long, or it is too short.
 
 ### Why a Single Script?
 
@@ -45,7 +45,7 @@ It checks feasibility against the document's natural size, not against the scale
 
 If you already know LaTeX, skip to the next section. If you have only used Word or Google Docs, here is the whole idea.
 
-**LaTeX** (say "lay-tek") is a typesetting system built on TeX, the engine Donald Knuth wrote in the late 1970s to set mathematics well. Instead of formatting by clicking buttons, you write plain text mixed with commands that describe structure, then a program turns that into a finished PDF. You write `\section{Experience}` and `\textbf{Senior Analyst}`, and LaTeX decides the exact spacing, alignment, and line breaks.
+**[LaTeX](https://www.latex-project.org/)** (say "lay-tek") is a typesetting system built on [TeX](https://tug.org/), the engine Donald Knuth wrote in the late 1970s to set mathematics well. Instead of formatting by clicking buttons, you write plain text mixed with commands that describe structure, then a program turns that into a finished PDF. You write `\section{Experience}` and `\textbf{Senior Analyst}`, and LaTeX decides the exact spacing, alignment, and line breaks.
 
 The difference from Word is the point. Word shows you the formatted page and you nudge it by hand. LaTeX has you describe what each piece of text is, then lays it out consistently. You give up live visual editing, and in return you get output that looks typeset, spacing that stays uniform across the document, and a plain-text file you can version-control and diff.
 
@@ -53,7 +53,7 @@ The pieces you actually touch:
 
 - **The `.tex` file** is your document, plain text you can open in any editor.
 - **A compiler** reads the `.tex` and produces a **`.pdf`**, plus side files (`.aux`, `.log`) you can ignore or gitignore.
-- **`xelatex`** is the compiler flavor this tool uses. It handles modern system fonts and Unicode cleanly. It ships with TeX Live (Windows, Linux) and MacTeX (Mac). Check it with `xelatex --version`.
+- **[`xelatex`](https://tug.org/xetex/)** is the compiler flavor this tool uses. It handles modern system fonts and Unicode cleanly. It ships with [TeX Live](https://tug.org/texlive/) (Windows, Linux) and [MacTeX](https://tug.org/mactex/) (Mac). Check it with `xelatex --version`.
 
 **The scaling knob, in plain terms.** In a normal LaTeX resume each size is a fixed number: body text is 10 point, a heading is 12, a gap is 6. In a document built for this tool, each of those is written as "a base number times `\rs`." So `\rs` at 1.0 gives the normal sizes, 0.95 shrinks everything 5 percent, 1.03 grows it 3. That one number scales the whole document, and it is the only thing the tool turns.
 
@@ -63,7 +63,7 @@ The pieces you actually touch:
 
 This is the hard dependency. The tool does not parse your layout or resize elements one by one. It turns `\rs` and recompiles. If your `.tex` does not route its sizing through `\rs`, there is nothing to turn and the tool refuses to run.
 
-Wiring it up is a few lines in the preamble. You need the `xfp` package for the arithmetic, the knob itself, and two small helpers so the rest of the document never writes a raw size:
+Wiring it up is a few lines in the preamble. You need the [`xfp`](https://ctan.org/pkg/xfp) package for the arithmetic, the knob itself, and two small helpers so the rest of the document never writes a raw size:
 
 ```latex
 \usepackage{xfp}                         % \fpeval for inline arithmetic
@@ -82,15 +82,15 @@ Wiring it up is a few lines in the preamble. You need the `xfp` package for the 
 \newlength{\Litemsep}\setlength{\Litemsep}{\fpeval{1.6*\rs}pt}
 ```
 
-From there, body text uses `\fs{10}{11.7}`, a section gap uses `\sv{6}`, list spacing pulls from `\Litemsep`, and every size traces back to `\rs`. The repo ships `demo.tex`, a minimal knob-wired resume that compiles with the default fonts (no `fonts/` folder), so you can try the tool right after cloning:
+From there, body text uses `\fs{10}{11.7}`, a section gap uses `\sv{6}`, list spacing pulls from `\Litemsep`, and every size traces back to `\rs`. The repo ships [`demo.tex`](demo.tex), a minimal knob-wired resume that compiles with the default fonts (no `fonts/` folder), so you can try the tool right after cloning:
 
 ```bash
 python3 resume-tex-fit.py demo.tex --pages 1
 ```
 
-That compresses it onto one clean page (it runs onto a second page at normal size). Try `--pages 2` to keep its natural two pages instead. The full before and after is in the next section.
+That compresses it onto one clean page (it runs onto a second page at normal size). Try `--pages 2` to keep its natural two pages instead. The full before and after is in the [next section](#what-a-run-looks-like).
 
-If you would rather not hand-write any of this, the next section has an AI do it for you.
+If you would rather not hand-write any of this, the [next section](#bring-your-own-resume-convert-it-with-ai) has an AI do it for you.
 
 ---
 
@@ -127,13 +127,13 @@ The only edit it makes to your `.tex` is the one knob:
 +\newcommand{\rs}{0.9064}
 ```
 
-Every size, line height, and gap recomputes from that value, so the whole document tightens by the same proportion instead of one part getting cramped. The original is saved as `demo.tex.bak` next to it, and `debug/` holds more documents to try, including a two-column layout, an academic CV, and a few edge cases.
+Every size, line height, and gap recomputes from that value, so the whole document tightens by the same proportion instead of one part getting cramped. The original is saved as `demo.tex.bak` next to it, and [`debug/`](debug/) holds more documents to try, including a two-column layout, an academic CV, and a few edge cases.
 
 ---
 
 ## Bring Your Own Resume: Convert It With AI
 
-If you have a resume in Word, Docs, or a PDF, you do not need to learn LaTeX or wire the knob by hand. A general model (Claude, ChatGPT, Gemini) converts it reliably, but only if you hand it the knob machinery and tell it to route everything through it. A plain "convert my resume to LaTeX" request produces hardcoded sizes the tool cannot touch. The prompt below forces every size through `\rs`.
+If you have a resume in Word, Docs, or a PDF, you do not need to learn LaTeX or wire the knob by hand. A general model ([Claude](https://claude.ai), [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google.com)) converts it reliably, but only if you hand it the knob machinery and tell it to route everything through it. A plain "convert my resume to LaTeX" request produces hardcoded sizes the tool cannot touch. The prompt below forces every size through `\rs`.
 
 ### Why Convert at All
 
@@ -143,7 +143,7 @@ If you have a resume in Word, Docs, or a PDF, you do not need to learn LaTeX or 
 - **Retarget without rewriting:** Change the `--pages` number and rerun. The knob retunes density; you do not touch a word.
 - **Typeset quality:** Consistent spacing and alignment that word processors do not match.
 - **Plain-text source:** Version control, clean diffs, and a PDF you can regenerate identically.
-- **ATS-friendly when built right:** Selectable text and standard section names parse cleanly through applicant tracking systems.
+- **ATS-friendly when built right:** Selectable text and standard section names parse cleanly through [applicant tracking systems](https://en.wikipedia.org/wiki/Applicant_tracking_system).
 
 **What it costs:**
 
@@ -159,19 +159,19 @@ For this tool, favor the **article-class, single-file** templates (Jake's, sb2no
 
 | Template | What it is | License | Source |
 | --- | --- | --- | --- |
-| Jake's Resume | Single-file, single-column, dense, ATS-friendly. The most convertible of the popular ones. | MIT | `github.com/jakegut/resume` |
-| sb2nov/resume | Clean single-column, a de facto standard in tech, easy to start from. | MIT | `github.com/sb2nov/resume` |
-| latexcv | A collection of several self-contained styles; needs only a minimal TeX Live. | MIT | `github.com/jankapunkt/latexcv` |
-| rover-resume | Minimal `article`-class, roughly ten lines to start, no custom class to learn. | CC BY 4.0 | `github.com/subidit/rover-resume` |
-| AltaCV | Two-column designed CV, class-based. Strong visual reference. | LPPL 1.3+ | `github.com/liantze/AltaCV` |
-| Awesome-CV | Polished, icon fonts, matching cover letter. Class-based. | Class LPPL 1.3c; template CC BY-SA 4.0 | `github.com/posquit0/Awesome-CV` |
-| moderncv | Five built-in styles, class-based, distributed on CTAN. | LPPL 1.3c | `ctan.org/pkg/moderncv` |
-| Deedy-Resume | Dense two-column, one page, Lato and Raleway fonts. Opinionated. | Apache 2.0 | `github.com/deedy/Deedy-Resume` |
+| Jake's Resume | Single-file, single-column, dense, ATS-friendly. The most convertible of the popular ones. | MIT | [github.com/jakegut/resume](https://github.com/jakegut/resume) |
+| sb2nov/resume | Clean single-column, a de facto standard in tech, easy to start from. | MIT | [github.com/sb2nov/resume](https://github.com/sb2nov/resume) |
+| latexcv | A collection of several self-contained styles; needs only a minimal TeX Live. | MIT | [github.com/jankapunkt/latexcv](https://github.com/jankapunkt/latexcv) |
+| rover-resume | Minimal `article`-class, roughly ten lines to start, no custom class to learn. | CC BY 4.0 | [github.com/subidit/rover-resume](https://github.com/subidit/rover-resume) |
+| AltaCV | Two-column designed CV, class-based. Strong visual reference. | LPPL 1.3+ | [github.com/liantze/AltaCV](https://github.com/liantze/AltaCV) |
+| Awesome-CV | Polished, icon fonts, matching cover letter. Class-based. | Class LPPL 1.3c; template CC BY-SA 4.0 | [github.com/posquit0/Awesome-CV](https://github.com/posquit0/Awesome-CV) |
+| moderncv | Five built-in styles, class-based, distributed on CTAN. | LPPL 1.3c | [ctan.org/pkg/moderncv](https://ctan.org/pkg/moderncv) |
+| Deedy-Resume | Dense two-column, one page, Lato and Raleway fonts. Opinionated. | Apache 2.0 | [github.com/deedy/Deedy-Resume](https://github.com/deedy/Deedy-Resume) |
 
 For a wider hunt:
 
-- **Curated list:** `github.com/smortezah/awesome-cv` collects templates and generators across LaTeX, Typst, and others.
-- **GitHub topics:** browse hundreds and filter by license at `github.com/topics/latex-resume-template` and `github.com/topics/latex-cv-template`.
+- **Curated list:** [github.com/smortezah/awesome-cv](https://github.com/smortezah/awesome-cv) collects templates and generators across LaTeX, Typst, and others.
+- **GitHub topics:** browse hundreds and filter by license at [github.com/topics/latex-resume-template](https://github.com/topics/latex-resume-template) and [github.com/topics/latex-cv-template](https://github.com/topics/latex-cv-template).
 
 Licenses vary and can change, and forks often differ from the original. Confirm the license in the repo before you reuse or redistribute a template.
 
@@ -207,7 +207,7 @@ Here is my resume content:
 [PASTE YOUR RESUME TEXT HERE]
 ```
 
-Save the result as `myresume.tex` next to `resume-tex-fit.py`. If you told the model to use a local font, drop the font files in a `fonts/` folder beside the `.tex` and point `fontspec` at them; the default font needs nothing extra.
+Save the result as `myresume.tex` next to [`resume-tex-fit.py`](resume-tex-fit.py). If you told the model to use a local font, drop the font files in a `fonts/` folder beside the `.tex` and point [`fontspec`](https://ctan.org/pkg/fontspec) at them; the default font needs nothing extra.
 
 ### Step 3: Check the Output
 
@@ -241,10 +241,10 @@ Put the script, your `.tex`, and (if the document loads local fonts) a `fonts/` 
 
 ### Requirements
 
-- **`xelatex` on your PATH.** The one hard requirement. Ships with TeX Live and MacTeX. Check with `xelatex --version`.
-- **Python 3.8 or newer.** Standard library only for the core fit.
-- **`pdfplumber` (optional).** If installed, the "too long" advice gives a line-level overflow estimate instead of a coarse page-based one. Install with `pip install pdfplumber`.
-- **`tkinter` (optional, GUI only).** Bundled with most Python installs. On some Linux builds it is a separate `python3-tk` package.
+- **`xelatex` on your PATH.** The one hard requirement. Ships with [TeX Live](https://tug.org/texlive/) and [MacTeX](https://tug.org/mactex/). Check with `xelatex --version`.
+- **[Python](https://www.python.org/) 3.8 or newer.** Standard library only for the core fit.
+- **[`pdfplumber`](https://github.com/jsvine/pdfplumber) (optional).** If installed, the "too long" advice gives a line-level overflow estimate instead of a coarse page-based one. Install with `pip install pdfplumber`.
+- **[`tkinter`](https://docs.python.org/3/library/tkinter.html) (optional, GUI only).** Bundled with most Python installs. On some Linux builds it is a separate `python3-tk` package.
 
 ### CLI
 
