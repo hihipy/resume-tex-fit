@@ -29,7 +29,7 @@ The usual fixes all have a catch:
 
 ## The Solution
 
-`resume-TeX-fit` turns page fitting into one search. Your document exposes a single scaling command, `\newcommand{\rs}{1.000}`, and every font size, line spacing, and gap is computed from it. The tool edits that number, compiles with `xelatex`, reads the page count from the log, and searches for the largest scale that still fits your target. Fitting to the largest scale means the last page fills as much as it can without spilling.
+`resume-tex-fit` turns page fitting into one search. Your document exposes a single scaling command, `\newcommand{\rs}{1.000}`, and every font size, line spacing, and gap is computed from it. The tool edits that number, compiles with `xelatex`, reads the page count from the log, and searches for the largest scale that still fits your target. Fitting to the largest scale means the last page fills as much as it can without spilling.
 
 It checks feasibility against the document's natural size, not against the scale ceiling, so a longer target does not pad a short resume by inflating type unless you turn on Force Fit. Three outcomes, covered in detail below: it fits, it is too long, or it is too short.
 
@@ -68,7 +68,7 @@ Wiring it up is a few lines in the preamble. You need the `xfp` package for the 
 ```latex
 \usepackage{xfp}                         % \fpeval for inline arithmetic
 
-% The one knob resume-TeX-fit turns. Keep it at 1.000 in source; the tool sets it.
+% The one knob resume-tex-fit turns. Keep it at 1.000 in source; the tool sets it.
 \newcommand{\rs}{1.000}
 
 % \fs{size}{leading} selects a font size and line spacing, both scaled by \rs.
@@ -180,7 +180,7 @@ Licenses vary and can change, and forks often differ from the original. Confirm 
 Paste this into your AI of choice and fill the four bracketed fields. It hands the model the exact knob setup and requires everything to route through it, which is what makes the output compile and fit.
 
 ```text
-You are converting my resume into a single self-contained LaTeX file that compiles with xelatex. The file will be fed to a tool called resume-TeX-fit, which fits the document to a target page count by turning ONE scaling knob. For that to work, every font size, line spacing, and vertical space MUST be computed from that knob. Follow these rules exactly.
+You are converting my resume into a single self-contained LaTeX file that compiles with xelatex. The file will be fed to a tool called resume-tex-fit, which fits the document to a target page count by turning ONE scaling knob. For that to work, every font size, line spacing, and vertical space MUST be computed from that knob. Follow these rules exactly.
 
 1. Include this machinery verbatim in the preamble and route ALL sizing through it. Do not hardcode any font size or vertical space that bypasses \rs.
 
@@ -199,7 +199,7 @@ You are converting my resume into a single self-contained LaTeX file that compil
 
 5. Font: set the main font with fontspec to [FONT NAME, or write "the default" to skip fontspec and use Latin Modern so it compiles with no extra files]. Use a single accent color, [ACCENT COLOR as a hex value, for example 1A365D], for the name, section headers, and rules.
 
-6. Aim the layout at roughly [TARGET PAGES] page(s) at normal size, but do not force it; resume-TeX-fit will tighten or relax the fit.
+6. Aim the layout at roughly [TARGET PAGES] page(s) at normal size, but do not force it; resume-tex-fit will tighten or relax the fit.
 
 Output ONLY the complete .tex file in one code block, with no explanation before or after.
 
