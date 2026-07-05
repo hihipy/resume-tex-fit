@@ -152,7 +152,7 @@ Every size, line height, and gap recomputes from that value, so the whole docume
 
 ## Bring Your Own Resume: Convert It With AI
 
-If you have a resume in Word, Docs, or a PDF, or an open-source `.tex` template you want to reuse, you do not need to learn LaTeX or wire the knob by hand. A general model ([Claude](https://claude.ai), [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google.com)) converts it reliably, but only if you hand it the knob machinery and tell it to route everything through it. A plain "convert my resume to LaTeX" request produces hardcoded sizes the tool cannot touch. The prompt below forces every size through `\rs`, whether you start from plain text or an existing template.
+If you have a resume in Word, Docs, or a PDF, or an open-source `.tex` template you want to reuse, you do not need to learn LaTeX or wire the knob by hand. A general model ([Claude](https://claude.ai), [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google.com)) converts it reliably, but only if you hand it the knob machinery and tell it to route everything through it. A plain "convert my resume to LaTeX" request produces hardcoded sizes the tool cannot touch. The prompt below forces every size through `\rs`, whether you paste text, attach your current resume file, or start from an existing template.
 
 ### Why Convert at All
 
@@ -168,7 +168,7 @@ If you have a resume in Word, Docs, or a PDF, or an open-source `.tex` template 
 
 - **A real dependency:** You need `xelatex` installed to compile.
 - **Proofreading is on you:** AI conversion drops bullets, mangles special characters, and occasionally invents a detail. Read every line against your original.
-- **Not every template converts cleanly:** Single-file `article`-class templates rewire through one knob without a fight. Class-based templates (the ones that load a `.cls`) hide their sizing inside the class, where the knob cannot reach.
+- **Not every template converts cleanly:** Single-file `article`-class templates rewire through one knob without a fight. Class-based templates (the ones that load a `.cls`) keep their sizing inside the class; the prompt inlines that into one file, but the conversion is less reliable.
 
 ### Step 1: Pick a Look
 
@@ -196,41 +196,57 @@ Licenses vary and can change, and forks often differ from the original. Confirm 
 
 ### Step 2: Convert With This Prompt
 
-Paste this into your AI of choice. It works two ways: hand it the plain text of your resume, or hand it an open-source template `.tex` plus your content and it rewires the template through the knob while keeping the template's look. Fill the bracketed fields and mark your input **A** or **B** at the bottom.
+Paste this into your AI of choice. It handles three inputs: **A**, paste the plain text of your resume and it builds a clean layout; **B**, attach your current resume as a PDF or DOCX and it reproduces the look as closely as it can; **C**, hand it an existing template `.tex` plus your content and it rewires the template through the knob while keeping its look. Fill the bracketed fields and mark your input A, B, or C at the bottom.
 
 ```text
-You are producing a single self-contained LaTeX file that compiles with xelatex. It will be fed to a tool called resume-tex-fit, which fits the document to a target page count by turning ONE scaling knob, so every font size, line spacing, and vertical space MUST be computed from that knob. Follow every rule below.
+You are producing ONE self-contained LaTeX file that compiles with xelatex. It will be fed to a tool called resume-tex-fit, which fits the document to a target page count by turning a single scaling knob, so every font size, line spacing, and vertical space MUST be computed from that knob. Follow every rule exactly. Do not deviate, and do not explain your work.
 
-INPUT. At the bottom I give you one of two things, and I mark which:
-  (A) the plain text of my resume, or
-  (B) an existing .tex resume template, followed by my resume content.
-If A: build a clean single-column layout from scratch. If B: keep the template's visual design (its fonts, colors, section styling, spacing, and layout) and only replace its sample content with mine; do not redesign it. If the template depends on a custom document class or style file (a .cls or .sty that is not a standard package), inline the parts you need into this one file, because the tool edits only this single .tex and cannot reach sizing locked inside a class. Apply rules 1 to 7 in both cases.
+INPUT MODE. I am giving you exactly one of the following, and I mark which at the very bottom:
 
-1. Knob machinery. Include this verbatim in the preamble and route ALL sizing through it. Leave no hardcoded font size, leading, or vertical space that bypasses \rs, including any already in a template you were given.
+  (A) The plain text of my resume, pasted below.
+      Build a clean, single-column layout from scratch, using the font and accent color from rule 7.
+
+  (B) My existing resume as an attached file (PDF or DOCX).
+      Read it, extract its content exactly, then reproduce its appearance (fonts, colors, section styling, sizes, spacing) in LaTeX as closely as you can. Match what it looks like; do not redesign it. Flatten it to a single column even if the original has columns (rule 6). Change no wording, add nothing, drop nothing.
+
+  (C) An existing .tex file (a template or my own draft), followed by my resume content.
+      Keep the file's visual design and only swap its sample content for mine. Do not redesign it. If it relies on a custom class or style file (a .cls or .sty that is not a standard package), inline the parts you need into this one file, because the tool edits only this single .tex and cannot reach sizing locked inside a class.
+
+Rules 1 to 8 apply to ALL modes.
+
+1. Knob machinery. Include this verbatim in the preamble and route ALL sizing through it. Leave no font size, leading, or vertical space anywhere that bypasses \rs, including sizes carried over from a file or template.
 
    \usepackage{xfp}
    \newcommand{\rs}{1.000}
    \newcommand{\fs}[2]{\fontsize{\fpeval{#1*\rs}}{\fpeval{#2*\rs}}\selectfont}
    \newcommand{\sv}[1]{\vspace{\fpeval{#1*\rs}pt}}
 
-   Use \fs{size}{leading} for every size, \sv{pt} for every manual vertical space, and \fpeval{VALUE*\rs} inside any package option or length that takes a measurement (\titlespacing, list itemsep and topsep, \setlength, and so on). When rewiring a template, convert each of its fixed sizes to this form but keep the same numbers, so the look is identical at \rs = 1.000. Leave \rs at exactly 1.000 in your output; the tool sets it, not you. Never hand-tune sizes to hit a page count.
+   Use \fs{size}{leading} for every size, \sv{pt} for every manual vertical space, and \fpeval{VALUE*\rs} inside any package option or length that takes a measurement (\titlespacing, list itemsep and topsep, \setlength, \\[...] line-break spacing, and so on). When you carry a size over from a file or template, keep the same number so the look is identical at \rs = 1.000. Leave \rs at exactly 1.000; the tool sets it, not you. Never hand-tune sizes to hit a page count.
 
-2. Content. Use only the content I give you. Do not invent employers, titles, dates, metrics, or achievements, and drop any sample or placeholder content from a template. If something is ambiguous or missing, leave a % TODO comment rather than guessing.
+   BANNED, because each sets a fixed size the knob cannot move: a bare \fontsize outside the \fs macro; the named size commands \tiny \scriptsize \footnotesize \small \normalsize \large \Large \LARGE \huge \Huge; a raw \vspace, \vskip, \hspace, or \\[Npt] with a literal measurement; and any literal pt, em, or cm value in a package option or length. Replace every one with \fs, \sv, or \fpeval{VALUE*\rs}.
 
-3. Must compile with xelatex. If a template uses a pdflatex-only setup (for example \usepackage[T1]{fontenc} with a Type 1 font package, or anything that errors under xelatex), replace it with a fontspec equivalent or the default Latin Modern. The file must build with a plain: xelatex file.tex
+2. Content integrity. Use only the content I provide or that appears in the file I attach. Do not invent employers, titles, dates, metrics, or achievements, and drop any sample or placeholder content. If something is unreadable, ambiguous, or missing, leave a % TODO comment instead of guessing.
 
-4. Escape LaTeX specials in any plain text I give you: & % $ # _ { } ~ ^ and backslash. Keep real dollar figures as \$ (for example, \$540M). Do not double-escape content that is already valid LaTeX inside a template.
+3. Compiles with xelatex. The file must build with a plain: xelatex file.tex . If a template or reproduction would need a pdflatex-only setup (for example \usepackage[T1]{fontenc} with a Type 1 font package), replace it with a fontspec equivalent or the default Latin Modern.
 
-5. ATS-friendly: single column, selectable text, standard section headings via \section, no text rendered as an image, no multi-column tables holding content. Standard section names (Summary, Experience, Education, Skills, Projects) help both parsers and the tool's checks.
+4. Self-contained. One file only. Do not \input or \include external files, and do not depend on a separate .cls or .sty beyond standard packages. Inline anything you need.
 
-6. Look. If building from plain text (A), set the main font with fontspec to [FONT NAME, or write "the default" to skip fontspec and use Latin Modern], and use one accent color [ACCENT HEX, for example 1A365D] for the name, section headers, and rules. If rewiring a template (B), keep its fonts and colors as-is unless I override here: [OPTIONAL font or color changes, or leave blank].
+5. Escaping. Escape LaTeX specials in any text taken from plain input or a file: & % $ # _ { } ~ ^ and backslash. Keep real dollar amounts as \$ (for example, \$540M). Do not double-escape content that is already valid LaTeX in a template.
 
-7. Aim the layout at roughly [TARGET PAGES] page(s) at normal size, but do not force it; resume-tex-fit will tighten or relax the fit.
+6. ATS-safe. Single column, real selectable text, standard section headings via \section, no text rendered as an image, no content laid out in tables. Standard section names (Summary, Experience, Education, Skills, Projects) help both parsers and the tool's checks. This holds even when reproducing a multi-column original: keep the styling, drop the columns.
 
-Output ONLY the complete .tex file in one code block, with no explanation before or after.
+7. Look. Mode A: set the main font with fontspec to [FONT NAME, or "the default" to use Latin Modern with no extra files], and use one accent color [ACCENT HEX, for example 1A365D] for the name, headings, and rules. Mode B: match the file's fonts and colors; if you cannot identify a font, use the closest common one and note the substitution in a % comment. Mode C: keep the template's fonts and colors unless I override here: [OPTIONAL overrides, or leave blank].
 
-Here is my input, marked A or B:
-[PASTE EITHER YOUR RESUME TEXT (A), OR YOUR TEMPLATE .tex THEN YOUR RESUME CONTENT (B)]
+8. Target. Aim the layout at roughly [TARGET PAGES] page(s) at normal size, but do not force it; resume-tex-fit will tighten or relax the fit.
+
+If a rule is impossible for a given input, do not break it silently: put one % NOTE line at the very top of the file saying what you could not do, then follow every other rule.
+
+Before you output, check each of these: \rs is exactly 1.000; every size and gap goes through \fs, \sv, or \fpeval; none of the banned commands above appear; the layout is single column; and the file would compile with xelatex. Fix anything that fails before you send it.
+
+Output ONLY the complete .tex file in one code block, beginning with \documentclass and ending with \end{document}. No prose, label, or note before or after it.
+
+Here is my input (marked A, B, or C):
+[FOR A: PASTE RESUME TEXT. FOR B: ATTACH THE FILE AND WRITE "B" HERE. FOR C: PASTE YOUR .tex THEN YOUR RESUME CONTENT.]
 ```
 
 Save the result as `myresume.tex` next to [`resume-tex-fit.py`](resume-tex-fit.py). If you told the model to use a local font, drop the font files in a `fonts/` folder beside the `.tex` and point [`fontspec`](https://ctan.org/pkg/fontspec) at them; the default font needs nothing extra.
@@ -243,6 +259,38 @@ The model gets you most of the way. The rest is on you, because this is a resume
 - **Scan for `% TODO` comments.** Those mark where the model was unsure.
 - **Check special characters.** Percentages, dollar signs, ampersands in company names, and underscores in emails are the usual breakage points.
 - **Confirm the knob is used.** The tool refuses a file with no `\rs`, but it cannot catch a stray `\fontsize{11pt}` that slipped past the knob. A search for raw `pt` sizes finds those.
+
+---
+
+## Customizing the Look
+
+You almost never need to write this by hand. The AI prompt above wires the styling for you, so the easiest path is to ask for what you want in plain words: "use the Charter font with a dark green accent," "tighter spacing," "wider margins." The AI applies it and keeps the one rule that matters, that every size runs through the knob so the fitter still works.
+
+Here is the menu of what you can change. Each item shows the plain-English version to ask for, and the single line that controls it if you ever want to peek.
+
+**Font, meaning the typeface.** Ask for any font by name. A few work with no setup because they come with LaTeX: Latin Modern (the default), and the TeX Gyre family (Termes looks like Times, Heros like Arial, Pagella like Palatino). Any font installed on your own computer works too. Stick to clean, professional faces and skip handwriting or display styles, which read badly and can confuse resume scanners.
+
+```latex
+\setmainfont{TeX Gyre Termes}
+```
+
+If you plan to send the resume to someone who might not have your font, ask the AI to set the font up from a `fonts/` folder, then drop the font files into that folder next to your `.tex`. That way it looks the same on any computer.
+
+**Color.** One accent color, used on your name, the section titles, and the lines under them. Give the AI a color by name, or a hex code like `1A365D` for navy. One accent looks sharp; more than one looks busy.
+
+```latex
+\definecolor{accent}{HTML}{1A365D}
+```
+
+**Spacing and margins.** How much white space sits around the sections, the bullets, and the edges of the page. Ask for "tighter" or "more open," or a specific margin like "three quarters of an inch." The tool changes how dense the text is, not the margins, so pick margins you like and let it handle the fit.
+
+```latex
+\usepackage[margin=0.9in]{geometry}
+```
+
+**Section headings.** The look of "Experience," "Education," and the rest: the font, whether a line sits under each one, and the space around them. Describe the style in words ("small caps, thin underline") and the AI builds it.
+
+**Keep it one column.** You can make two columns, but do not for a resume you upload to a job site. Many [applicant tracking systems](https://en.wikipedia.org/wiki/Applicant_tracking_system) read straight across the page and jumble two-column text. The tool and the prompt both stay single column for that reason.
 
 ---
 
