@@ -72,7 +72,7 @@ The pieces you actually touch:
 
 - **The `.tex` file** is your document, plain text you can open in any editor.
 - **A compiler** reads the `.tex` and produces a **`.pdf`**, plus side files (`.aux`, `.log`) you can ignore or gitignore.
-- **[`xelatex`](https://tug.org/xetex/)** is the compiler flavor this tool uses. It handles modern system fonts and Unicode cleanly. It ships with [TeX Live](https://tug.org/texlive/) (Windows, Linux) and [MacTeX](https://tug.org/mactex/) (Mac). Check it with `xelatex --version`.
+- **[`xelatex`](https://tug.org/xetex/)** is the compiler flavor this tool uses. It handles modern system fonts and Unicode cleanly. It ships with [TeX Live](https://tug.org/texlive/) (Windows, macOS, Linux), [MacTeX](https://tug.org/mactex/) (macOS), and [MiKTeX](https://miktex.org/) (Windows). Check it with `xelatex --version`.
 
 **The scaling knob, in plain terms.** In a normal LaTeX resume each size is a fixed number: body text is 10 point, a heading is 12, a gap is 6. In a document built for this tool, each of those is written as "a base number times `\rs`." So `\rs` at 1.0 gives the normal sizes, 0.95 shrinks everything 5 percent, 1.03 grows it 3. That one number scales the whole document, and it is the only thing the tool turns.
 
@@ -106,6 +106,8 @@ From there, body text uses `\fs{10}{11.7}`, a section gap uses `\sv{6}`, list sp
 ```bash
 python3 resume-tex-fit.py demo.tex --pages 1
 ```
+
+On Windows, use `python` (or `py`) anywhere this README shows `python3`.
 
 That compresses it onto one clean page (it runs onto a second page at normal size). Try `--pages 2` to keep its natural two pages instead. The full before and after is in the [next section](#what-a-run-looks-like).
 
@@ -315,8 +317,8 @@ Put the script, your `.tex`, and (if the document loads local fonts) a `fonts/` 
 
 ### Requirements
 
-- **`xelatex` on your PATH.** The one hard requirement. Ships with [TeX Live](https://tug.org/texlive/) and [MacTeX](https://tug.org/mactex/). Check with `xelatex --version`.
-- **[Python](https://www.python.org/) 3.8 or newer.** Standard library only for the core fit.
+- **`xelatex` on your PATH.** The one hard requirement. Ships with [TeX Live](https://tug.org/texlive/) (Windows, macOS, Linux), [MacTeX](https://tug.org/mactex/) (macOS), or [MiKTeX](https://miktex.org/) (Windows). Check with `xelatex --version`.
+- **[Python](https://www.python.org/) 3.8 or newer.** Standard library only for the core fit. Run it with `python3` on macOS and Linux, or `python` (or `py`) on Windows.
 - **[`pdfplumber`](https://github.com/jsvine/pdfplumber) (optional).** If installed, the "too long" advice gives a line-level overflow estimate instead of a coarse page-based one. Install with `pip install pdfplumber`.
 - **[`tkinter`](https://docs.python.org/3/library/tkinter.html) (optional, GUI only).** Bundled with most Python installs. On some Linux builds it is a separate `python3-tk` package.
 
@@ -324,7 +326,7 @@ Put the script, your `.tex`, and (if the document loads local fonts) a `fonts/` 
 
 ```bash
 python3 resume-tex-fit.py resume.tex --pages 2
-python3 resume-tex-fit.py resume.tex --pages 1 --force --out ~/Desktop/resume.pdf
+python3 resume-tex-fit.py resume.tex --pages 1 --force --out fitted-resume.pdf
 python3 resume-tex-fit.py cv.tex --pages 0            # 0 = fit to natural length
 ```
 
