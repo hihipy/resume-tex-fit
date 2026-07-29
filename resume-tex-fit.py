@@ -31,7 +31,10 @@ Core fit needs no third-party packages. If pdfplumber is installed, the
 "too long" advice gets a finer, line-level estimate of the overflow. The GUI
 needs tkinter (bundled with most Python installs; on some Linux builds it is a
 separate python3-tk package).
-"""
+
+Exit status (CLI): 0 when the document was fitted to the target, 1 when it was
+not, so a calling script can tell the two apart.
+"""  # noqa: EXE001
 
 import argparse
 import pathlib
@@ -59,7 +62,9 @@ BULLET_LINES = 1.8          # rough wrapped lines per bullet, for cut estimates
 LINES_PER_PAGE = 46         # coarse fallback when pdfplumber is unavailable
 
 KNOB_RE = re.compile(r"(\\newcommand\s*\{\s*\\rs\s*\}\s*\{)\s*([0-9.]+)\s*(\})")
-PAGES_RE = re.compile(r"Output written on .*?\((\d+)\s+pages?\)")
+# xelatex's driver writes "(2 pages)."; the pdftex family writes
+# "(2 pages, 48213 bytes)." Accept either terminator.
+PAGES_RE = re.compile(r"Output written on .*?\((\d+)\s+pages?[,)]")
 SECTION_RE = re.compile(r"\\section\*?\{([^}]*)\}")
 # Recognized resume and CV headings; two or more suggests a real resume or CV.
 DOC_SECTIONS = {
@@ -105,28 +110,43 @@ def check_tex(path):
 
 
 def set_scale(tex, scale):
-    text = tex.read_text(encoding="utf-8")
+    # Read strictly, not with errors="ignore": this is a read-modify-write of
+    # the user's source, and dropping undecodable bytes would silently rewrite
+    # the document as well as the knob.
+    try:
+        text = tex.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise FitError(
+            f"{tex.name} is not valid UTF-8, so the knob cannot be rewritten "
+            "without risking the rest of the file. Re-save it as UTF-8 and "
+            "rerun.") from exc
+    except OSError as exc:
+        raise FitError(f"Cannot read {tex.name}: {exc}") from exc
     new_text, n = KNOB_RE.subn(
         lambda m: f"{m.group(1)}{scale:.4f}{m.group(3)}", text, count=1)
     if n == 0:
         raise FitError(r"No \rs knob to set in " + tex.name)
-    tex.write_text(new_text, encoding="utf-8")
+    try:
+        tex.write_text(new_text, encoding="utf-8")
+    except OSError as exc:
+        raise FitError(f"Cannot write {tex.name}: {exc}") from exc
 
 
 def compile_pdf(tex, log):
     """Compile once; return the page count. Raise FitError on failure."""
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # noqa: PLW1510
             ["xelatex", "-interaction=nonstopmode", "-halt-on-error", tex.name],
             cwd=tex.parent, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             timeout=COMPILE_TIMEOUT,
         )
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         raise FitError("xelatex not found on PATH. Install TeX Live or MacTeX, "
-                       "then confirm with: xelatex --version")
-    except subprocess.TimeoutExpired:
+                       "then confirm with: xelatex --version") from exc
+    except subprocess.TimeoutExpired as exc:
         raise FitError(f"xelatex timed out after {COMPILE_TIMEOUT}s on {tex.name}. "
-                       "The document may have an infinite loop or a stuck package.")
+                       "The document may have an infinite loop or a stuck "
+                       "package.") from exc
     logf = tex.with_suffix(".log")
     if proc.returncode != 0 or not logf.exists():
         detail = ""
@@ -162,7 +182,7 @@ def overflow_lines(tex, target, scale):
                 if ws:
                     spilled += max(w["bottom"] for w in ws) - min(w["top"] for w in ws)
         return spilled / (BASE_LEADING_PT * scale)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return None
 
 
@@ -290,6 +310,11 @@ def run_fit(tex, target, min_scale, max_scale, log, tool="resume-tex-fit.py",
                     "systems may struggle.")
                 lo, hi, floor = FORCE_MIN, min_scale, FORCE_MIN
                 shrank = True
+                if page_count(lo) > target:
+                    # The hard floor still overflows, so no scale in this range
+                    # fits. Collapse the interval instead of compiling a search
+                    # that cannot succeed; the guard after the loop reports it.
+                    hi = lo
             else:
                 lo, hi, floor = min_scale, 1.0, min_scale   # shrink below neutral
                 shrank = False
@@ -302,6 +327,12 @@ def run_fit(tex, target, min_scale, max_scale, log, tool="resume-tex-fit.py",
                 "padded and leave the last page sparse.")
             lo, hi, floor = 1.0, max(max_scale, FORCE_MAX), 1.0
             grew, shrank = True, False
+            if page_count(hi) < target:
+                # Even the grow ceiling stays under the target, so no scale in
+                # this range reaches it. Collapse the interval rather than
+                # compile a search that cannot succeed; the guard after the
+                # loop reports it.
+                lo = hi
         else:
             lo, hi, floor = 1.0, max_scale, 1.0         # p0 == target: fill last page
             grew, shrank = False, False
@@ -367,12 +398,20 @@ def main_cli(args, tool):
     except FitError as exc:
         sys.exit(str(exc))
     if args.out:
-        pdf = tex.with_suffix(".pdf")
-        if pdf.exists():
-            shutil.copy2(pdf, args.out)
-            print(f"Saved PDF to {args.out}")
+        # Only a real fit is worth exporting. On too_long the .tex and PDF have
+        # been restored to their pre-run state, so copying that out would hand
+        # back an unfitted document under the name of a fitted one.
+        if res["status"] != "ok":
+            print(f"Not saved to {args.out}: the fit did not reach the target.")
         else:
-            print("No PDF to save (the fit did not produce one).")
+            pdf = tex.with_suffix(".pdf")
+            if pdf.exists():
+                shutil.copy2(pdf, args.out)
+                print(f"Saved PDF to {args.out}")
+            else:
+                print("No PDF to save (the fit did not produce one).")
+    if res["status"] != "ok":
+        sys.exit(1)      # so a calling script can tell a failed fit from a good one
     return res
 
 
@@ -406,7 +445,7 @@ def detect_dark_mode():
     """Best-effort OS dark-mode check. Returns False (light) on any doubt."""
     try:
         if sys.platform == "darwin":
-            out = subprocess.run(["defaults", "read", "-g", "AppleInterfaceStyle"],
+            out = subprocess.run(["defaults", "read", "-g", "AppleInterfaceStyle"],  # noqa: PLW1510
                                  capture_output=True, text=True, timeout=2)
             return "dark" in out.stdout.lower()
         if sys.platform.startswith("win"):
@@ -416,11 +455,11 @@ def detect_dark_mode():
                 r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
             return winreg.QueryValueEx(key, "AppsUseLightTheme")[0] == 0
         # Linux and the rest: GNOME/freedesktop color-scheme setting.
-        out = subprocess.run(
+        out = subprocess.run(  # noqa: PLW1510
             ["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
             capture_output=True, text=True, timeout=2)
         return "dark" in out.stdout.lower()
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -428,8 +467,8 @@ def launch_gui(initial, min_scale, max_scale, tool):
     try:
         import threading
         import tkinter as tk
-        from tkinter import filedialog, ttk, scrolledtext
-    except Exception:
+        from tkinter import filedialog, scrolledtext, ttk
+    except Exception:  # noqa: BLE001
         sys.exit("GUI needs tkinter (install python3-tk), or use the CLI:\n"
                  f"  python {tool} file.tex --pages 2")
 
@@ -465,6 +504,7 @@ def launch_gui(initial, min_scale, max_scale, tool):
     selected = {"path": pathlib.Path(initial) if initial else None}
     running = {"on": False}
     dest = {"path": None}                # where to write the fitted PDF, set on Fit
+    last = {"inspected": None}           # so typing does not re-inspect per keystroke
 
     # --- file row ---
     ttk.Label(main, text=".tex File:").grid(row=0, column=0, sticky="w")
@@ -473,6 +513,12 @@ def launch_gui(initial, min_scale, max_scale, tool):
         row=0, column=1, sticky="ew", padx=(4, 4))
     main.columnconfigure(1, weight=1)
 
+    def current_path():
+        # The entry is editable, so the text in it is what a run acts on, not
+        # whatever the file dialog last returned.
+        raw = path_var.get().strip()
+        return pathlib.Path(raw).expanduser() if raw else None
+
     def inspect(path):
         # No colored status label: write the knob/resume check into the output
         # pane so it can be selected and copied like everything else.
@@ -480,29 +526,49 @@ def launch_gui(initial, min_scale, max_scale, tool):
         fit_btn.state(["!disabled"] if info["has_knob"] else ["disabled"])
         show(info["message"])
 
+    def on_path_edit(*_):
+        # A typed or pasted path goes through the same check as a chosen one.
+        # Only a path that resolves to a file is inspected, so partial typing
+        # does not flood the pane.
+        if running["on"]:
+            return
+        p = current_path()
+        if p and p.is_file():
+            if p != last["inspected"]:
+                last["inspected"] = p
+                selected["path"] = p
+                inspect(p)
+        else:
+            last["inspected"] = None
+            fit_btn.state(["disabled"])
+
+    path_var.trace_add("write", on_path_edit)
+
     def choose():
         p = filedialog.askopenfilename(
             title="Choose a .tex File",
             filetypes=[("LaTeX Files", "*.tex"), ("All Files", "*.*")])
         if p:
-            selected["path"] = pathlib.Path(p)
-            path_var.set(p)
-            inspect(selected["path"])
+            path_var.set(p)              # the trace inspects it and enables Fit
 
-    ttk.Button(main, text="Browse...", command=choose).grid(row=0, column=2)
+    browse_btn = ttk.Button(main, text="Browse...", command=choose)
+    browse_btn.grid(row=0, column=2)
 
     # --- document type row ---
     ttk.Label(main, text="Document Type:").grid(row=2, column=0, sticky="w")
     role_var = tk.StringVar(value="")    # no default; the user must choose a type
-    ttk.Combobox(main, textvariable=role_var, state="readonly", width=28,
-                 values=list(ROLE_PAGES)).grid(row=2, column=1, sticky="w",
-                                                padx=(4, 0))
+    role_box = ttk.Combobox(main, textvariable=role_var, state="readonly", width=28,
+                            values=list(ROLE_PAGES))
+    role_box.grid(row=2, column=1, sticky="w", padx=(4, 0))
     fit_btn = ttk.Button(main, text="Fit")               # command wired below
     fit_btn.grid(row=2, column=2, sticky="e")
     force_var = tk.BooleanVar(value=False)
-    ttk.Checkbutton(main, text="Force Fit (Shrink or Grow Past the Readable Range)",
-                    variable=force_var).grid(row=3, column=0, columnspan=2,
-                                             sticky="w", pady=(6, 0))
+    force_box = ttk.Checkbutton(
+        main, text="Force Fit (Shrink or Grow Past the Readable Range)",
+        variable=force_var)
+    force_box.grid(row=3, column=0, columnspan=2, sticky="w", pady=(6, 0))
+
+    controls = (fit_btn, browse_btn, role_box, force_box)
 
     # --- output pane ---
     out = scrolledtext.ScrolledText(main, height=14, wrap="word",
@@ -530,12 +596,15 @@ def launch_gui(initial, min_scale, max_scale, tool):
 
     def finish():
         running["on"] = False
-        fit_btn.state(["!disabled"])
+        for w in controls:
+            w.state(["!disabled"])       # readonly on the combobox survives this
 
-    def save_result():
+    def save_result(path):
         # Copy the freshly fitted PDF to the destination chosen before the run.
+        # `path` is the file the run actually used, not whatever is in the entry
+        # now, so a mid-run edit cannot redirect the copy.
         target_path = dest["path"]
-        src = selected["path"].with_suffix(".pdf")
+        src = path.with_suffix(".pdf")
         if not target_path or not src.exists():
             return
         try:
@@ -545,44 +614,52 @@ def launch_gui(initial, min_scale, max_scale, tool):
         except OSError as exc:
             log(f"\nCould not save PDF: {exc}")
 
-    def start_fit(target, force):
+    def start_fit(path, target, force):
         running["on"] = True
-        fit_btn.state(["disabled"])
+        for w in controls:               # freeze the inputs the run depends on
+            w.state(["disabled"])
         out.configure(state="normal")            # fresh pane for each run
         out.delete("1.0", "end")
         out.configure(state="disabled")
         # xelatex runs in a thread so the window stays responsive.
-        threading.Thread(target=worker, args=(selected["path"], target, force),
+        threading.Thread(target=worker, args=(path, target, force),
                          daemon=True).start()
 
-    def on_result(target, res):
+    def on_result(path, res):
         try:
             if res["status"] == "ok":            # only a real fit gets written out
-                save_result()
+                save_result(path)
             else:
                 log("\nNot saved.")
             finish()
-        except Exception as exc:                 # never wedge the window
+        except Exception as exc:                 # never wedge the window  # noqa: BLE001
             log(f"\nUnexpected error: {exc!r}")
             finish()
 
     def worker(path, target, force):
         try:
             res = run_fit(path, target, min_scale, max_scale, log, tool, force=force)
-            root.after(0, on_result, target, res)
+            root.after(0, on_result, path, res)
         except FitError as exc:
             log(f"\nError: {exc}")
             root.after(0, finish)
-        except Exception as exc:                 # surface, don't crash silently
+        except Exception as exc:                 # surface, don't crash silently  # noqa: BLE001
             log(f"\nUnexpected error: {exc!r}")
             root.after(0, finish)
 
     def on_fit():
         if running["on"]:
             return
-        path = selected["path"]
-        if not path or not path.exists():
+        # Re-resolve and re-check here rather than trusting the button state,
+        # since the entry can be edited without the button ever losing focus.
+        path = current_path()
+        if not path or not path.is_file():
             show("Choose an existing .tex file first.")
+            return
+        selected["path"] = path
+        info = check_tex(path)
+        if not info["has_knob"]:
+            show(info["message"])
             return
         if role_var.get() not in ROLE_PAGES:
             show("Choose a document type first.")
@@ -600,11 +677,12 @@ def launch_gui(initial, min_scale, max_scale, tool):
         if not chosen:
             return
         dest["path"] = chosen
-        start_fit(ROLE_PAGES[role_var.get()], force_var.get())
+        start_fit(path, ROLE_PAGES[role_var.get()], force_var.get())
 
     fit_btn.configure(command=on_fit)
 
-    if selected["path"] and selected["path"].exists():
+    if selected["path"] and selected["path"].is_file():
+        last["inspected"] = selected["path"]
         inspect(selected["path"])
     else:
         fit_btn.state(["disabled"])
