@@ -176,18 +176,18 @@ If you have a resume in Word, Docs, or a PDF, or an open-source `.tex` template 
 
 Browse a few real, open-source `.tex` templates, decide on a style, then have the AI reproduce that look in the knob-wired structure. Everything below is a repository you can clone and read, not a hosted editor.
 
-For this tool, favor the **article-class, single-file** templates (Jake's, sb2nov, latexcv, rover-resume). Their sizing lives in the preamble where the knob can drive it directly. The **class-based** ones (AltaCV, Awesome-CV, moderncv, Deedy) keep their sizing inside a `.cls`, so the prompt has to inline that into one file first. It can, but the conversion is less reliable, so treat them as a visual reference and let the AI reproduce the look in the simpler single-file structure.
+For this tool, favor the **article-class, single-file** templates (Jake's, latexcv, rover-resume, sb2nov). Their sizing lives in the preamble where the knob can drive it directly. The **class-based** ones (AltaCV, Awesome-CV, Deedy, moderncv) keep their sizing inside a `.cls`, so the prompt has to inline that into one file first. It can, but the conversion is less reliable, so treat them as a visual reference and let the AI reproduce the look in the simpler single-file structure.
 
-| Template | What it is | License | Source |
-| --- | --- | --- | --- |
-| Jake's Resume | Single-file, single-column, dense, ATS-friendly. The most convertible of the popular ones. | MIT | [github.com/jakegut/resume](https://github.com/jakegut/resume) |
-| sb2nov/resume | Clean single-column, a de facto standard in tech, easy to start from. | MIT | [github.com/sb2nov/resume](https://github.com/sb2nov/resume) |
-| latexcv | A collection of several self-contained styles; needs only a minimal TeX Live. | MIT | [github.com/jankapunkt/latexcv](https://github.com/jankapunkt/latexcv) |
-| rover-resume | Minimal `article`-class, roughly ten lines to start, no custom class to learn. | CC BY 4.0 | [github.com/subidit/rover-resume](https://github.com/subidit/rover-resume) |
-| AltaCV | Two-column designed CV, class-based. Strong visual reference. | LPPL 1.3+ | [github.com/liantze/AltaCV](https://github.com/liantze/AltaCV) |
-| Awesome-CV | Polished, icon fonts, matching cover letter. Class-based. | Class LPPL 1.3c; template CC BY-SA 4.0 | [github.com/posquit0/Awesome-CV](https://github.com/posquit0/Awesome-CV) |
-| moderncv | Five built-in styles, class-based, distributed on CTAN. | LPPL 1.3c | [ctan.org/pkg/moderncv](https://ctan.org/pkg/moderncv) |
-| Deedy-Resume | Dense two-column, one page, Lato and Raleway fonts. Opinionated. | Apache 2.0 | [github.com/deedy/Deedy-Resume](https://github.com/deedy/Deedy-Resume) |
+| Template | Type | What it is | License | Source |
+| --- | --- | --- | --- | --- |
+| Jake's Resume | Single-file article | Single-column, dense, ATS-friendly. The most convertible of the popular ones. | MIT | [github.com/jakegut/resume](https://github.com/jakegut/resume) |
+| latexcv | Single-file article | A collection of several self-contained styles; needs only a minimal TeX Live. | MIT | [github.com/jankapunkt/latexcv](https://github.com/jankapunkt/latexcv) |
+| rover-resume | Single-file article | Roughly ten lines to start, no custom class to learn. | CC BY 4.0 | [github.com/subidit/rover-resume](https://github.com/subidit/rover-resume) |
+| sb2nov/resume | Single-file article | Clean single-column, a de facto standard in tech, easy to start from. | MIT | [github.com/sb2nov/resume](https://github.com/sb2nov/resume) |
+| AltaCV | Class-based | Two-column designed CV. Strong visual reference. | LPPL 1.3+ | [github.com/liantze/AltaCV](https://github.com/liantze/AltaCV) |
+| Awesome-CV | Class-based | Polished, icon fonts, matching cover letter. | Class LPPL 1.3c; template CC BY-SA 4.0 | [github.com/posquit0/Awesome-CV](https://github.com/posquit0/Awesome-CV) |
+| Deedy-Resume | Class-based | Dense two-column, one page, Lato and Raleway fonts. Opinionated. | Apache 2.0 | [github.com/deedy/Deedy-Resume](https://github.com/deedy/Deedy-Resume) |
+| moderncv | Class-based | Five built-in styles, distributed on CTAN. | LPPL 1.3c | [ctan.org/pkg/moderncv](https://ctan.org/pkg/moderncv) |
 
 For a wider hunt:
 
