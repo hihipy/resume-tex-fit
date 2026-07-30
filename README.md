@@ -154,7 +154,7 @@ Every size, line height, and gap recomputes from that value, so the whole docume
 
 ## Bring Your Own Resume: Convert It With AI
 
-If you have a resume in Word, Docs, or a PDF, or an open-source `.tex` template you want to reuse, you do not need to learn LaTeX or wire the knob by hand. A general model ([Claude](https://claude.ai), [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google.com)) converts it reliably, but only if you hand it the knob machinery and tell it to route everything through it. A plain "convert my resume to LaTeX" request produces hardcoded sizes the tool cannot touch. The prompt below forces every size through `\rs`, whether you paste text, attach your current resume file, or start from an existing template.
+If you have a resume in Word, Docs, or a PDF, or an open-source `.tex` template you want to reuse, you do not need to learn LaTeX or wire the knob by hand. A general model ([Claude](https://claude.ai), [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google/about/)) converts it reliably, but only if you hand it the knob machinery and tell it to route everything through it. A plain "convert my resume to LaTeX" request produces hardcoded sizes the tool cannot touch. The prompt below forces every size through `\rs`, whether you paste text, attach your current resume file, or start from an existing template.
 
 ### Why Convert at All
 
