@@ -29,7 +29,7 @@ The usual fixes all have a catch:
 
 ## The Solution
 
-`resume-tex-fit` turns page fitting into one search. Your document exposes a single scaling command, `\newcommand{\rs}{1.000}`, and every font size, line spacing, and gap is computed from it. The tool edits that number, compiles with `xelatex`, reads the page count from the log, and searches for the largest scale that still fits your target. Fitting to the largest scale means the last page fills as much as it can without spilling.
+Resume TeX Fit turns page fitting into one search. Your document exposes a single scaling command, `\newcommand{\rs}{1.000}`, and every font size, line spacing, and gap is computed from it. The tool edits that number, compiles with `xelatex`, reads the page count from the log, and searches for the largest scale that still fits your target. Fitting to the largest scale means the last page fills as much as it can without spilling.
 
 It checks feasibility against the document's natural size, not against the scale ceiling, so a longer target does not pad a short resume by inflating type unless you turn on Force Fit. Three outcomes, [covered in detail below](#the-three-outcomes): it fits, it is too long, or it is too short.
 
