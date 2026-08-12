@@ -5,9 +5,9 @@
 
 **Built with**
 
-[![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
 [![LaTeX](https://img.shields.io/badge/LaTeX-008080?style=flat&logo=latex&logoColor=white)](https://www.latex-project.org)
 [![pdfplumber](https://img.shields.io/badge/pdfplumber-4B5563?style=flat&logoColor=white)](https://github.com/jsvine/pdfplumber)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
 [![tkinter](https://img.shields.io/badge/tkinter-4B5563?style=flat&logoColor=white)](https://docs.python.org/3/library/tkinter.html)
 
 Fit a LaTeX resume, CV, or any document to an exact page count. It drives the whole document off one scaling value, then finds the tightest setting that still fits, so your last page fills up instead of spilling a few lines onto the next one.
