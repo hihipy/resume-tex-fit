@@ -27,6 +27,13 @@ Two ways to run it:
 The .tex, this script, and the fonts/ folder should sit in the same directory,
 since the document loads its icon fonts from ./fonts/. xelatex must be on PATH.
 
+After a successful fit the PDF is re-emitted so weaker text extractors can
+find word boundaries. XeLaTeX writes word gaps as glyph positioning rather than
+space characters, so parsers that do not reconstruct them read "Power BI" as
+"PowerBI" and miss the keyword. This needs pdftocairo (poppler-utils) and pypdf;
+without either it is skipped and the fit is unaffected. Disable with
+--no-space-fix.
+
 Core fit needs no third-party packages. If pdfplumber is installed, the
 "too long" advice gets a finer, line-level estimate of the overflow. The GUI
 needs tkinter (bundled with most Python installs; on some Linux builds it is a
@@ -165,6 +172,82 @@ def compile_pdf(tex, log):
     return int(matches[-1])
 
 
+def normalize_spaces(pdf, log):
+    r"""Re-emit `pdf` in place so weaker text extractors find word boundaries.
+
+    XeLaTeX's driver writes word gaps as glyph positioning rather than space
+    characters. Poppler reconstructs them; pypdf and a number of applicant
+    tracking parsers do not, so a multi-word keyword like "Power BI" extracts
+    as "PowerBI" and fails an exact match. pdftocairo re-emits the text stream
+    with real spaces but drops document metadata and link annotations, so both
+    are copied back from the original.
+
+    Skips quietly when pdftocairo or pypdf is missing, and restores the original
+    if the rewrite does not actually improve tokenization. Returns True when the
+    file was rewritten.
+    """
+    if shutil.which("pdftocairo") is None:
+        log("  space fix skipped: pdftocairo not found (install poppler-utils).")
+        return False
+    try:
+        # pypdf's optional crypto backend emits a DeprecationWarning on import
+        # in some environments; it is noise in the log pane, not a problem here.
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            import pypdf
+    except ImportError:
+        log("  space fix skipped: pypdf not installed (pip install pypdf).")
+        return False
+
+    def tokens(path):
+        # Whitespace-separated tokens as a weak parser would see them. More
+        # tokens after the rewrite means word boundaries became visible.
+        reader = pypdf.PdfReader(str(path))
+        return len("".join(p.extract_text() or "" for p in reader.pages).split())
+
+    backup = pdf.with_suffix(".pdf.orig")
+    rebuilt = pdf.with_suffix(".pdf.spaced")
+    try:
+        before = tokens(pdf)
+        shutil.copy2(pdf, backup)
+        subprocess.run(  # noqa: PLW1510
+            ["pdftocairo", "-pdf", str(backup), str(rebuilt)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=COMPILE_TIMEOUT, check=True,
+        )
+        orig, fixed = pypdf.PdfReader(str(backup)), pypdf.PdfReader(str(rebuilt))
+        writer = pypdf.PdfWriter()
+        for i, page in enumerate(fixed.pages):
+            if i < len(orig.pages):
+                annots = orig.pages[i].get("/Annots")   # clickable links
+                if annots is not None:
+                    page[pypdf.generic.NameObject("/Annots")] = annots
+            writer.add_page(page)
+        if orig.metadata:                                # pdftitle, pdfkeywords
+            writer.add_metadata(
+                {k: v for k, v in orig.metadata.items() if isinstance(v, str)})
+        with open(rebuilt, "wb") as fh:
+            writer.write(fh)
+
+        after = tokens(rebuilt)
+        if after <= before:
+            log(f"  space fix reverted: no improvement ({before} -> {after} tokens).")
+            return False
+        shutil.move(str(rebuilt), str(pdf))
+        log(f"  space fix applied: {before} -> {after} extractable tokens.")
+        return True
+    except Exception as exc:  # noqa: BLE001
+        # Never let this cost a good fit. Put the original back and move on.
+        log(f"  space fix skipped: {exc}")
+        if backup.exists():
+            shutil.copy2(backup, pdf)
+        return False
+    finally:
+        for tmp in (backup, rebuilt):
+            tmp.unlink(missing_ok=True)
+
+
 def overflow_lines(tex, target, scale):
     """Estimate text lines spilling past `target` pages in the current PDF.
     Uses pdfplumber if importable; returns a float, or None if unavailable."""
@@ -233,13 +316,15 @@ def advise_too_short(tex, target, natural_pages, tool, log):
 
 
 def run_fit(tex, target, min_scale, max_scale, log, tool="resume-tex-fit.py",
-            force=False):
+            force=False, space_fix=True):
     """Orchestrate a fit. Returns a result dict:
        {status: ok|too_long|too_short, pages: int, scale: float|None}.
     target=None fits to the document's natural page count (fills the last page).
     With force=True, a target larger than the natural size grows the type to
     reach it, and a target smaller shrinks below the legible floor. Both are
     opt-in and tend to look padded or become hard to read.
+    With space_fix=True the locked PDF is re-emitted so weaker text extractors
+    can find word boundaries; see normalize_spaces.
     Raises FitError on missing file, missing knob, or compile failure."""
     if not tex.exists():
         raise FitError(f"{tex} not found.")
@@ -370,6 +455,8 @@ def run_fit(tex, target, min_scale, max_scale, log, tool="resume-tex-fit.py",
                 f"{target} page(s) even below the readable floor; cut some. "
                 f"Reverted to normal size.")
             return {"status": "too_long", "pages": final, "scale": None}
+        if space_fix:
+            normalize_spaces(tex.with_suffix(".pdf"), log)
         log(f"\nLocked scale {best:.4f} -> {final} page(s). "
             f"Backup saved as {backup.name}.")
         return {"status": "ok", "pages": final, "scale": best}
@@ -394,7 +481,7 @@ def main_cli(args, tool):
     try:
         target = None if args.pages == 0 else args.pages   # 0 = fit to natural
         res = run_fit(tex, target, args.min_scale, args.max_scale, print, tool,
-                      force=args.force)
+                      force=args.force, space_fix=not args.no_space_fix)
     except FitError as exc:
         sys.exit(str(exc))
     if args.out:
@@ -706,6 +793,9 @@ def main():
     ap.add_argument("--force", action="store_true",
                     help="grow or shrink type to reach --pages even when the "
                          "content does not fit (may look padded or become small)")
+    ap.add_argument("--no-space-fix", action="store_true",
+                    help="skip re-emitting the PDF with real space characters "
+                         "(see normalize_spaces); leaves raw xelatex output")
     ap.add_argument("--out", type=pathlib.Path, default=None,
                     help="copy the fitted PDF to this path after a successful fit")
     args = ap.parse_args()
