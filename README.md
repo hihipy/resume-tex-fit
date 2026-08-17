@@ -304,6 +304,7 @@ If you plan to send the resume to someone who might not have your font, ask the 
 - **Force Fit (opt-in):** When the content does not fit the target, grow past the normal range or shrink below the readable floor to hit it anyway, with a plain warning about the cost.
 - **Three honest outcomes:** Fits, too long, or too short, each with a clear report and next step.
 - **Cut guidance when too long:** Estimates the overflow and suggests where to trim, ordered easiest to hardest.
+- **Space fix for text extractors:** After a successful fit, re-emits the PDF so weaker parsers can find word boundaries, then verifies the result and reverts if it did not help. See [The Space Fix](#the-space-fix).
 - **Choose where the PDF goes:** The GUI asks for the output folder and name before running; the CLI takes `--out`.
 - **Backup and restore:** Writes a `.tex.bak` before any change and restores it if the target is not reachable.
 - **Follows your OS theme:** The GUI reads your light or dark setting on launch.
@@ -320,6 +321,7 @@ Put the script, your `.tex`, and (if the document loads local fonts) a `fonts/` 
 - **`xelatex` on your PATH.** The one hard requirement. Ships with [TeX Live](https://tug.org/texlive/) (Windows, macOS, Linux), [MacTeX](https://tug.org/mactex/) (macOS), or [MiKTeX](https://miktex.org/) (Windows). Check with `xelatex --version`.
 - **[Python](https://www.python.org/) 3.8 or newer.** Standard library only for the core fit. Run it with `python3` on macOS and Linux, or `python` (or `py`) on Windows.
 - **[`pdfplumber`](https://github.com/jsvine/pdfplumber) (optional).** If installed, the "too long" advice gives a line-level overflow estimate instead of a coarse page-based one. Install with `pip install pdfplumber`.
+- **`pdftocairo` and [`pypdf`](https://github.com/py-pdf/pypdf) (optional, recommended).** Both are needed for [the space fix](#the-space-fix), which makes the PDF readable to weaker text extractors. `pdftocairo` ships with [poppler-utils](https://poppler.freedesktop.org/) (`brew install poppler`, `apt install poppler-utils`); install the other with `pip install pypdf`. Without them the fix is skipped and the fit is unaffected.
 - **[`tkinter`](https://docs.python.org/3/library/tkinter.html) (optional, GUI only).** Bundled with most Python installs. On some Linux builds it is a separate `python3-tk` package.
 
 ### CLI
@@ -330,7 +332,7 @@ python3 resume-tex-fit.py resume.tex --pages 1 --force --out fitted-resume.pdf
 python3 resume-tex-fit.py cv.tex --pages 0            # 0 = fit to natural length
 ```
 
-`--pages` is the target (default 2); `0` fits to the document's natural length, for a CV. `--force` grows or shrinks past the normal range to hit the target even when the content does not fit, and warns about the cost. `--out PATH` copies the fitted PDF to PATH after a successful run. `--min` and `--max` set the scale range (defaults 0.90 and 1.05); lower `--min` for smaller type, raise `--max` for larger.
+`--pages` is the target (default 2); `0` fits to the document's natural length, for a CV. `--force` grows or shrinks past the normal range to hit the target even when the content does not fit, and warns about the cost. `--out PATH` copies the fitted PDF to PATH after a successful run. `--no-space-fix` skips [the space fix](#the-space-fix) and leaves the raw `xelatex` output. `--min` and `--max` set the scale range (defaults 0.90 and 1.05); lower `--min` for smaller type, raise `--max` for larger.
 
 ### GUI
 
@@ -345,9 +347,38 @@ Pick a `.tex`, choose a document type, and hit Fit. On Fit it asks where to save
 
 ## The Three Outcomes
 
-- **Fits.** The tool searches the scale range, backs off the boundary slightly so a later reflow cannot push you over, locks that scale, and reports it. A `.tex.bak` is saved first so you can revert.
+- **Fits.** The tool searches the scale range, backs off the boundary slightly so a later reflow cannot push you over, locks that scale, and reports it. A `.tex.bak` is saved first so you can revert. The locked PDF then goes through [the space fix](#the-space-fix).
 - **Too long.** If the document still overflows at the smallest normal density, the tool estimates the overflow (in lines, if `pdfplumber` is installed) and gives options ordered easiest to hardest, ending with Force Fit. Left alone, it restores your file and changes nothing. With Force Fit on, it shrinks below the readable floor to hit the target, or reverts and tells you the content is too dense if even that cannot reach it.
 - **Too short.** If the content does not reach the target at normal size, the tool reports what it fills and declines to pad. With Force Fit on, it grows the type to reach the target (which reads as padding), or reverts and tells you the content is too sparse if even the ceiling cannot reach it.
+
+---
+
+## The Space Fix
+
+`xelatex` writes the gaps between words as glyph positioning rather than as space characters. Poppler-based extractors reconstruct the gaps and read the document correctly. Several others, including [`pypdf`](https://github.com/py-pdf/pypdf) and the parsers built on it, do not: they concatenate the run, so `Power BI` extracts as `PowerBI` and fails an exact keyword match.
+
+That matters for a resume specifically. Single-word skills like `SQL` and `Python` survive because they have no internal space. Every multi-word term does not, and multi-word terms are most of what a job posting asks for.
+
+Measured on a real two-page resume, before the fix:
+
+| Extractor | `Power BI` | `Power Query` | `Tabular Editor` | `SQL` |
+| --- | --- | --- | --- | --- |
+| poppler (`pdftotext`) | 4 | 1 | 2 | 15 |
+| `pypdf` | 0 | 0 | 0 | 15 |
+
+After a successful fit the tool runs the locked PDF through `pdftocairo`, which re-encodes the text stream so those boundaries survive extraction. `pdftocairo` drops document metadata and link annotations, so the tool copies both back from the original: your `pdftitle`, `pdfkeywords`, and every clickable link are preserved.
+
+It then counts whitespace-separated tokens before and after. If the rewrite did not increase them, it restores the original and says so, so the check works on any document rather than looking for a particular keyword. Any error at all restores the original and the fit stands.
+
+The run prints one line when it fires:
+
+```
+  space fix applied: 249 -> 1254 extractable tokens.
+```
+
+Skip it with `--no-space-fix` (CLI) if you want the raw `xelatex` output. The GUI always applies it.
+
+Note that this is not a substitute for the rest of an ATS-safe document. Single column, real selectable text, and standard section headings still matter; this fixes one specific defect that survives all of them.
 
 ---
 
@@ -356,6 +387,7 @@ Pick a `.tex`, choose a document type, and hit Fit. On Fit it asks where to save
 - **The `\rs` knob is mandatory.** Pointing the tool at an arbitrary `.tex` without it will not work, by design.
 - **The search assumes page count rises with scale.** It almost always does, but LaTeX reflow can occasionally shuffle a widow or float across a page boundary and break that assumption. On a pathological document the fit can be off by a page; a rerun after a small edit usually resolves it.
 - **Each fit runs `xelatex` several times.** A search compiles repeatedly. The tool caches page counts per scale to avoid recompiling the same setting twice, but expect a run to take as long as several `xelatex` passes on your document.
+- **The space fix is best-effort.** It needs `pdftocairo` and `pypdf`; without either it is skipped with one line in the output and the fit is unaffected. It also cannot fix a document that is unreadable for other reasons, such as two columns or text baked into an image.
 - **The GUI render is not verified on every platform.** The logic and thread handling are tested; the exact window appearance varies by OS and theme.
 
 ---
