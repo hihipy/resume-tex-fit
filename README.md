@@ -368,12 +368,12 @@ Measured on a real two-page resume, before the fix:
 
 After a successful fit the tool runs the locked PDF through `pdftocairo`, which re-encodes the text stream so those boundaries survive extraction. `pdftocairo` drops document metadata and link annotations, so the tool copies both back from the original: your `pdftitle`, `pdfkeywords`, and every clickable link are preserved.
 
-It then counts whitespace-separated tokens before and after. If the rewrite did not increase them, it restores the original and says so, so the check works on any document rather than looking for a particular keyword. Any error at all restores the original and the fit stands.
+It then counts whitespace-separated words before and after. If the rewrite did not increase them, it restores the original and says so, so the check works on any document rather than looking for a particular keyword. Any error at all restores the original and the fit stands.
 
 The run prints one line when it fires:
 
 ```
-  space fix applied: 249 -> 1254 extractable tokens.
+  space fix applied: 249 -> 1254 extractable words.
 ```
 
 Skip it with `--no-space-fix` (CLI) if you want the raw `xelatex` output. The GUI always applies it.

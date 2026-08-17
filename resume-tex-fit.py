@@ -30,7 +30,8 @@ since the document loads its icon fonts from ./fonts/. xelatex must be on PATH.
 After a successful fit the PDF is re-emitted so weaker text extractors can
 find word boundaries. XeLaTeX writes word gaps as glyph positioning rather than
 space characters, so parsers that do not reconstruct them read "Power BI" as
-"PowerBI" and miss the keyword. This needs pdftocairo (poppler-utils) and pypdf;
+"PowerBI" and miss the keyword. Verified by counting extractable words before
+and after; the rewrite is reverted if it does not improve them. This needs pdftocairo (poppler-utils) and pypdf;
 without either it is skipped and the fit is unaffected. Disable with
 --no-space-fix.
 
@@ -178,12 +179,12 @@ def normalize_spaces(pdf, log):
     XeLaTeX's driver writes word gaps as glyph positioning rather than space
     characters. Poppler reconstructs them; pypdf and a number of applicant
     tracking parsers do not, so a multi-word keyword like "Power BI" extracts
-    as "PowerBI" and fails an exact match. pdftocairo re-emits the text stream
-    with real spaces but drops document metadata and link annotations, so both
-    are copied back from the original.
+    as "PowerBI" and fails an exact match. pdftocairo re-encodes the text stream
+    so those boundaries survive extraction, but it drops document metadata and
+    link annotations, so both are copied back from the original.
 
     Skips quietly when pdftocairo or pypdf is missing, and restores the original
-    if the rewrite does not actually improve tokenization. Returns True when the
+    if the rewrite does not actually improve word separation. Returns True when the
     file was rewritten.
     """
     if shutil.which("pdftocairo") is None:
@@ -200,16 +201,17 @@ def normalize_spaces(pdf, log):
         log("  space fix skipped: pypdf not installed (pip install pypdf).")
         return False
 
-    def tokens(path):
-        # Whitespace-separated tokens as a weak parser would see them. More
-        # tokens after the rewrite means word boundaries became visible.
+    def words(path):
+        # Whitespace-separated words as a weak parser would see them. This is
+        # plain str.split() on the extracted text: no network, no API, no model.
+        # More words after the rewrite means word boundaries became visible.
         reader = pypdf.PdfReader(str(path))
         return len("".join(p.extract_text() or "" for p in reader.pages).split())
 
     backup = pdf.with_suffix(".pdf.orig")
     rebuilt = pdf.with_suffix(".pdf.spaced")
     try:
-        before = tokens(pdf)
+        before = words(pdf)
         shutil.copy2(pdf, backup)
         subprocess.run(  # noqa: PLW1510
             ["pdftocairo", "-pdf", str(backup), str(rebuilt)],
@@ -230,12 +232,12 @@ def normalize_spaces(pdf, log):
         with open(rebuilt, "wb") as fh:
             writer.write(fh)
 
-        after = tokens(rebuilt)
+        after = words(rebuilt)
         if after <= before:
-            log(f"  space fix reverted: no improvement ({before} -> {after} tokens).")
+            log(f"  space fix reverted: no improvement ({before} -> {after} words).")
             return False
         shutil.move(str(rebuilt), str(pdf))
-        log(f"  space fix applied: {before} -> {after} extractable tokens.")
+        log(f"  space fix applied: {before} -> {after} extractable words.")
         return True
     except Exception as exc:  # noqa: BLE001
         # Never let this cost a good fit. Put the original back and move on.
